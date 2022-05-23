@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "NaveAerea.h"
+#include "CapsulaComponent.h"
 #include "NaveAereaJugador.generated.h"
 
 
@@ -33,9 +34,8 @@ public:
 	static const FName MoveForwardBinding;
 	static const FName MoveRightBinding;
 
+
 public:
-
-
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
@@ -62,8 +62,7 @@ public:
 	/* How fast the weapon will fire */
 	UPROPERTY(Category = Gameplay, EditAnywhere, BlueprintReadWrite)
 		float FireRate;
-
-
+	
 private:
 
 	/* Flag to control firing  */
@@ -74,6 +73,34 @@ private:
 
 	float FireForwardValue;
 	float FireRightValue;
+	
+	//float SpeedScale;
+	//float RunningTime;
+	//float MoveSpeed;
+
+	//Inventario
+	UPROPERTY()
+		UCapsulaComponent*	NaveInventory;
+	UPROPERTY()
+		TMap<FString, int32> NaveInfo;
+
+	UFUNCTION()
+		void TakeItem(ACapsulaActor* InventoryItem);
+
+	UFUNCTION()
+		void DropItem();
+	UFUNCTION()
+		void Inventory();
+	UFUNCTION()
+		void Test();
+	UFUNCTION()
+		void velocidad();
+	UFUNCTION()
+		void velocidadDI();
+	UFUNCTION()
+		virtual void NotifyHit(class UPrimitiveComponent* MyComp, AActor* Other, class UPrimitiveComponent* OtherComp, bool bSelfMoved, 
+			FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit) override;
+
 
 };
 

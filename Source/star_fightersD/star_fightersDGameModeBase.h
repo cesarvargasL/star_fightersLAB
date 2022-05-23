@@ -12,6 +12,7 @@
 UCLASS()
 class STAR_FIGHTERSD_API Astar_fightersDGameModeBase : public AGameModeBase
 {
+
 	GENERATED_BODY()
-	
+
 };

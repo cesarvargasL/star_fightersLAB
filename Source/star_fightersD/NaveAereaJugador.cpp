@@ -7,6 +7,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/InputComponent.h"
 #include "Kismet/GameplayStatics.h"
+
 //MOVEFORWARD ES UNA VARIABLE DE TIPO texto
 const FName ANaveAereaJugador::MoveForwardBinding("MoveForward");
 const FName ANaveAereaJugador::MoveRightBinding("MoveRight");
@@ -31,6 +32,8 @@ ANaveAereaJugador::ANaveAereaJugador()
 	CameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	CameraComponent->bUsePawnControlRotation = false;	// Camera does not rotate relative to arm
 
+
+	MoveSpeed = 1000.0f;
 	// Weapon
 	GunOffset = FVector(90.f, 0.f, 0.f);
 	FireRate = 0.1f;
@@ -38,6 +41,16 @@ ANaveAereaJugador::ANaveAereaJugador()
 
 	FireForwardValue = 1.0f;
 	FireRightValue = 0.0f;
+
+
+	NaveInventory = CreateDefaultSubobject<UCapsulaComponent>("MyInventory");
+	//Ship Info
+	//NaveInfo.Add("Vida aumentada", 100);
+	//NaveInfo.Add("Vida ", 100);
+	NaveInfo.Add("velocidad", 0);
+	NaveInfo.Add("velocidadDI", 0);
+	NaveInfo.Add("Proyectil", 0);
+
 	
 }
 
@@ -71,13 +84,6 @@ void ANaveAereaJugador::Tick(float DeltaSeconds)
 			const FRotator NewRotation = Movement.Rotation();
 			FHitResult Hit(1.f);
 			RootComponent->MoveComponent(Movement, NewRotation, true, &Hit);
-
-		//	if (Hit.IsValidBlockingHit())
-		//	{
-		//		const FVector Normal2D = Hit.Normal.GetSafeNormal2D();
-		//		const FVector Deflection = FVector::VectorPlaneProject(Movement, Normal2D) * (1.f - Hit.Time);
-		//		RootComponent->MoveComponent(Deflection, NewRotation, true);
-		//	}
 		}
 }
 
@@ -93,10 +99,44 @@ void ANaveAereaJugador::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindAxis(MoveForwardBinding);
 	PlayerInputComponent->BindAxis(MoveRightBinding);
 	InputComponent->BindAction(TEXT("Fire"), IE_Pressed, this, &ANaveAereaJugador::Fire);
-	
-
+	PlayerInputComponent->BindAction(TEXT("DropItem"), EInputEvent::IE_Pressed, this, &ANaveAereaJugador::DropItem);
+	PlayerInputComponent->BindAction(TEXT("Inventory"), EInputEvent::IE_Pressed, this, &ANaveAereaJugador::Inventory);
+	PlayerInputComponent->BindAction(TEXT("Test"), IE_Pressed, this, &ANaveAereaJugador::Test);
+	PlayerInputComponent->BindAction(TEXT("velocidad"), IE_Pressed, this, &ANaveAereaJugador::velocidad);
+	PlayerInputComponent->BindAction(TEXT("velocidadDI"), IE_Pressed, this, &ANaveAereaJugador::velocidadDI);
 }
+void ANaveAereaJugador::velocidad()
+{
+	FString v = "velocidad";
+	//
+	for (auto& pair : NaveInfo) {
 
+		if (pair.Key == v) {
+
+			if (pair.Value > 0) {
+				pair.Value = pair.Value + 1;
+				MoveSpeed = MoveSpeed + 400;
+			}
+			break;
+		}
+	}
+}
+void ANaveAereaJugador::velocidadDI()
+{
+	FString v = "velocidadDI";
+	//
+	for (auto& pair : NaveInfo) {
+
+		if (pair.Key == v) {
+
+			if (pair.Value > 0) {
+				pair.Value = pair.Value - 1;
+				MoveSpeed = MoveSpeed - 350;
+			}
+			break;
+		}
+	}
+}
 void ANaveAereaJugador::Fire()
 {
 	bCanFire = true;
@@ -150,6 +190,78 @@ void ANaveAereaJugador::FireShot(FVector FireDirection)
 void ANaveAereaJugador::ShotTimerExpired()
 {
 	bCanFire = true;
+}
+
+
+void ANaveAereaJugador::TakeItem(ACapsulaActor* InventoryItem)
+{
+	InventoryItem->PickUp();
+	NaveInventory->AddToInventory(InventoryItem);
+}
+
+void ANaveAereaJugador::DropItem()
+{
+	if (NaveInventory->ShipInventory.Num() == 0)
+	{
+		return;
+	}
+	ACapsulaActor* Item = NaveInventory->ShipInventory.Last();
+	NaveInventory->RemoveFromInventory(Item);
+	//should probably use scaled bounding box
+	FVector ItemOrigin;
+	FVector ItemBounds;
+	Item->GetActorBounds(false, ItemOrigin, ItemBounds);
+	FTransform PutDownLocation = GetTransform() + FTransform(RootComponent->GetForwardVector() * ItemBounds.GetMax());
+	Item->PutDown(PutDownLocation);
+}
+
+void ANaveAereaJugador::Inventory()
+{
+	//for(int32 i=0 ; i<NaveInventory->ShipInventory.Num(); i++) {
+		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::Printf(TEXT("Actor de nombre: %s"), *(NaveInventory->ShipInventory[i]->GetInventoryActorName())));
+	//}
+	for (auto& Elem : NaveInfo) {
+		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::Printf(TEXT("%s = %d"), *Elem.Key, Elem.Value));
+	}
+}
+
+void ANaveAereaJugador::Test()
+{
+	TSet<int>EjemploSet;
+	EjemploSet.Add(1);
+	EjemploSet.Add(2);
+	EjemploSet.Add(3);
+	EjemploSet.Add(1);  //duplicate: won't be addeed
+	EjemploSet.Add(1);  //duplicate: won't be addeed
+
+	for (auto It = EjemploSet.CreateConstIterator(); It; ++It) {
+
+		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::Printf(TEXT("%d"), *It));
+	}
+}
+
+void ANaveAereaJugador::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit)
+{
+
+	for (auto& Elem : NaveInfo) {
+		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::Printf(TEXT("%s = %d"), *Elem.Key, Elem.Value));
+	}
+
+	ACapsulaActor* MyInventoryItem = Cast<ACapsulaActor>(Other);
+	if (MyInventoryItem != nullptr)
+	{
+		FString n = MyInventoryItem->GetInventoryActorName();
+
+		for (auto& pair : NaveInfo) {
+			if (pair.Key == n) {
+				pair.Value = pair.Value + 1;
+				break;
+			}
+		}
+
+		TakeItem(MyInventoryItem);
+
+	}
 }
 
 
